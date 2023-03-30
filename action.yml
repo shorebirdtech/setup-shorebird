@@ -3,7 +3,7 @@ description: 'Installs shorebird'
 runs:
   using: "composite"
   steps:
-    - name: install-flutter
+    - name: Install Flutter
       uses: subosito/flutter-action@v2
       with:
         channel: stable
