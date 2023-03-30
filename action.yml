@@ -1,0 +1,13 @@
+name: 'Install Shorebird'
+description: 'Installs shorebird'
+runs:
+  using: "composite"
+  steps:
+    - name: Install Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        channel: stable
+        flutter-version: 3.7.8
+    - name: Install Shorebird
+      run: curl --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/shorebirdtech/install/main/install.sh -sSf | sh
+      shell: bash
