@@ -11,5 +11,6 @@ runs:
     - name: Install Shorebird
       run: |
         curl --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/shorebirdtech/install/main/install.sh -sSf | sh
-        echo "/home/runner/.config/shorebird/bin" >> $GITHUB_PATH
+        install_dir=$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.shorebird" || printf %s "${XDG_CONFIG_HOME}/shorebird")
+        echo $install_dir >> $GITHUB_PATH
       shell: bash
