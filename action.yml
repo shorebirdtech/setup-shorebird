@@ -1,9 +1,5 @@
 name: 'Install Shorebird'
 description: 'Installs shorebird'
-outputs:
-  INSTALL_PATH:
-    description: "The path of the shorebird binary"
-    value: '${{ steps.install-shorebird.outputs.INSTALL_PATH }}'
 runs:
   using: "composite"
   steps:
@@ -18,5 +14,4 @@ runs:
         curl --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/shorebirdtech/install/main/install.sh -sSf | sh
         install_path=$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.shorebird" || printf %s "${XDG_CONFIG_HOME}/shorebird")
         echo $install_path >> $GITHUB_PATH
-        echo "INSTALL_PATH=$(echo $install_path)" >> $GITHUB_OUTPUT
       shell: bash
