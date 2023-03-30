@@ -1,0 +1,8 @@
+name: 'Install Shorebird'
+description: 'Installs shorebird'
+runs:
+  using: "composite"
+  steps:
+    - id: install
+      run: curl --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/shorebirdtech/install/main/install.sh -sSf | sh
+      shell: bash
