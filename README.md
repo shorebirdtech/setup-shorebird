@@ -12,6 +12,6 @@ Installs and sets up [Shorebird](https://github.com/shorebirdtech/shorebird) for
 ```yaml
 steps:
   - uses: actions/checkout@v3
-  - uses: shorebirdtech/setup-shorebird@v1
+  - uses: shorebirdtech/setup-shorebird@v0
   - run: shorebird --version
 ```
