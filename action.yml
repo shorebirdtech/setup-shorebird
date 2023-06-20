@@ -1,10 +1,10 @@
 name: Setup Shorebird
-description: Install Shorebird CLI
+description: Install the Shorebird CLI
 
 runs:
   using: composite
   steps:
-    - name: Install Shorebird
+    - name: 🐦 Install Shorebird
       run: |
         curl --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/shorebirdtech/install/main/install.sh -sSf | bash
         install_path=$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.shorebird" || printf %s "${XDG_CONFIG_HOME}/shorebird")

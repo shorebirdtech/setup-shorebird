@@ -1,12 +1,17 @@
-# setup-shorebird
+# Setup Shorebird
 
-Allows use of Shorebird in GitHub Actions.
+Installs and sets up [Shorebird](https://github.com/shorebirdtech/shorebird) for use in GitHub Actions.
+
+## Features
+
+✅ Downloads the Shorebird CLI
+✅ Adds `shorebird` to the system path
 
 ## Usage
 
 ```yaml
 steps:
-- uses: actions/checkout@v3
-- uses: setup-shorebird/install@v1
-- run: shorebird -v
+  - uses: actions/checkout@v3
+  - uses: shorebirdtech/setup-shorebird@v1
+  - run: shorebird --version
 ```
