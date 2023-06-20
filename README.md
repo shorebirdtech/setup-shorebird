@@ -1,5 +1,6 @@
 # Setup Shorebird
 
+[![ci](https://github.com/shorebirdtech/setup-shorebird/actions/workflows/main.yaml/badge.svg)](https://github.com/shorebirdtech/setup-shorebird/actions/workflows/main.yaml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
 Installs and sets up [Shorebird](https://github.com/shorebirdtech/shorebird) for use in GitHub Actions.
