@@ -14,4 +14,10 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: ./
-      - run: shorebird --version
+      - run: |
+          if [[ $(shorebird --version) =~ "Shorebird Engine • revision" ]]; then          
+            echo '✅ Shorebird CLI is installed!'
+          else
+            echo '❌ Shorebird CLI is not installed.'
+            exit 1
+          fi
