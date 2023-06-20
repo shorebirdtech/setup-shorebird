@@ -5,6 +5,7 @@ Installs and sets up [Shorebird](https://github.com/shorebirdtech/shorebird) for
 ## Features
 
 ✅ Downloads the Shorebird CLI
+
 ✅ Adds `shorebird` to the system path
 
 ## Usage
