@@ -10,7 +10,7 @@ runs:
   steps:
     - name: 🐦 Install Shorebird
       run: |
-        curl --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/shorebirdtech/install/main/install.sh -sSf | bash -- --force
+        curl --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/shorebirdtech/install/main/install.sh | bash -sSf -- --force
         install_path=$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.shorebird" || printf %s "${XDG_CONFIG_HOME}/shorebird")
         echo $install_path/bin >> $GITHUB_PATH
         echo "added $install_path/bin to GITHUB_PATH"
