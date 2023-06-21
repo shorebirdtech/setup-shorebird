@@ -13,7 +13,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - run: curl --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/shorebirdtech/install/main/install.sh -sSf | bash
       - uses: ./
       - run: |
           if [[ $(shorebird --version) =~ "Shorebird Engine • revision" ]]; then          
