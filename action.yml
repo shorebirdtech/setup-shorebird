@@ -1,6 +1,10 @@
 name: Setup Shorebird
 description: Install the Shorebird CLI
 
+branding:
+  icon: check-circle
+  color: yellow
+
 runs:
   using: composite
   steps:
