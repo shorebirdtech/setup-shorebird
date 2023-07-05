@@ -28,6 +28,6 @@ runs:
         Set-ExecutionPolicy RemoteSigned -scope CurrentUser # Needed to execute remote scripts
         iwr -UseBasicParsing 'https://raw.githubusercontent.com/shorebirdtech/install/main/install.ps1'|iex
         $installDirectory = [IO.Path]::Combine($home, ".shorebird")
-        echo $installDirectory | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-        echo "added $install_path/bin to GITHUB_PATH"
+        Write-Output $installDirectory | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        Write-Output "added $installDirectory/bin to GITHUB_PATH"
       shell: pwsh
