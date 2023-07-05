@@ -42,9 +42,10 @@ jobs:
         with: 
           is_windows: ${{ matrix.os == 'windows-latest' }}
       - run: |
-          if ( (shorebird --version) -match "Shorebird Engine • revision") {
-            echo "✅ Shorebird CLI is installed!"
+          $shorebird_version = shorebird --version
+          if ($shorebird_version -match "Shorebird Engine") {
+            Write-Output "✅ Shorebird CLI is installed!"
           } else {
-            echo "❌ Shorebird CLI is not installed."
+            Write-Output "❌ Shorebird CLI is not installed."
             exit 1
           }
