@@ -9,11 +9,18 @@ jobs:
   semantic-pull-request:
     uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/semantic_pull_request.yml@v1
 
-  e2e:
-    runs-on: ubuntu-latest
+  e2e-macos-linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
       - uses: ./
+        with: 
+          is_windows: ${{ matrix.os == 'windows-latest' }}
       - run: |
           if [[ $(shorebird --version) =~ "Shorebird Engine • revision" ]]; then          
             echo '✅ Shorebird CLI is installed!'
@@ -21,3 +28,23 @@ jobs:
             echo '❌ Shorebird CLI is not installed.'
             exit 1
           fi
+
+  e2e-windows:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest]
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./
+        with: 
+          is_windows: ${{ matrix.os == 'windows-latest' }}
+      - run: |
+          if ( (shorebird --version) -match "Shorebird Engine • revision") {
+            echo "✅ Shorebird CLI is installed!"
+          } else {
+            echo "❌ Shorebird CLI is not installed."
+            exit 1
+          }

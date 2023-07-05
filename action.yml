@@ -5,13 +5,29 @@ branding:
   icon: check-circle
   color: yellow
 
+inputs:
+  is_windows:
+    required: false
+    default: 'false'
+    description: Whether to perform a Windows install
+
 runs:
   using: composite
   steps:
-    - name: 🐦 Install Shorebird
+    - name: 🐦 Install Shorebird (macOS / Linux)
+      if: inputs.is_windows == 'false'
       run: |
         curl --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/shorebirdtech/install/main/install.sh -sSf | bash -s -- --force
         install_path=$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.shorebird" || printf %s "${XDG_CONFIG_HOME}/shorebird")
         echo $install_path/bin >> $GITHUB_PATH
         echo "added $install_path/bin to GITHUB_PATH"
       shell: bash
+    - name: 🐦 Install Shorebird (Windows)
+      if: inputs.is_windows == 'true'
+      run: |
+        Set-ExecutionPolicy RemoteSigned -scope CurrentUser # Needed to execute remote scripts
+        iwr -UseBasicParsing 'https://raw.githubusercontent.com/shorebirdtech/install/main/install.ps1'|iex
+        $installDirectory = [IO.Path]::Combine($home, ".shorebird")
+        echo $installDirectory | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        echo "added $install_path/bin to GITHUB_PATH"
+      shell: pwsh
