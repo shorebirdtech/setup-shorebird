@@ -11,10 +11,18 @@ Installs and sets up [Shorebird](https://github.com/shorebirdtech/shorebird) for
 
 ✅ Adds `shorebird` to the system path
 
+✅ Configures the specified version of Flutter
+
 ## Usage
 
 ```yaml
 steps:
-  - uses: shorebirdtech/setup-shorebird@v0
+  - uses: shorebirdtech/setup-shorebird@v0    
   - run: shorebird --version
 ```
+
+## Inputs
+
+The action takes the following inputs:
+
+- `flutter-version`: Which version of Flutter to install alongside Shorebird (e.g. 3.10.6)

@@ -19,6 +19,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: ./
+        with:
+          flutter-version: 3.10.0
       - if: runner.os != 'Windows'
         run: |
           if [[ $(shorebird --version) =~ "Shorebird Engine • revision" ]]; then          
