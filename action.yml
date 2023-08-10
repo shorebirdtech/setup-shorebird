@@ -5,6 +5,11 @@ branding:
   icon: check-circle
   color: yellow
 
+inputs:
+  flutter-version:
+    description: The Flutter version to use alongside Shorebird
+    required: false
+
 runs:
   using: composite
   steps:
@@ -25,3 +30,7 @@ runs:
         Add-Content $env:GITHUB_PATH "$installDirectory\bin"
         Write-Output "added $installDirectory\bin to GITHUB_PATH"
       shell: pwsh
+    - name: 🐦 Install Flutter
+      if: ${{ inputs.flutter-version }}
+      run: shorebird flutter versions use ${{ inputs.flutter-version }}
+      shell: bash
