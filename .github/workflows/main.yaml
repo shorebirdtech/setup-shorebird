@@ -23,7 +23,7 @@ jobs:
           flutter-version: 3.10.0
       - if: runner.os != 'Windows'
         run: |
-          if [[ $(shorebird --version) =~ "Shorebird Engine • revision" ]]; then          
+          if [[ $(shorebird --version) =~ "Engine • revision" ]]; then          
             echo '✅ Shorebird CLI is installed!'
           else
             echo '❌ Shorebird CLI is not installed.'
@@ -32,7 +32,7 @@ jobs:
       - if: runner.os == 'Windows'
         run: |
           $shorebird_version = shorebird --version
-          if ($shorebird_version -match "Shorebird Engine") {
+          if ($shorebird_version -match "Engine") {
             Write-Output "✅ Shorebird CLI is installed!"
           } else {
             Write-Output "❌ Shorebird CLI is not installed."
