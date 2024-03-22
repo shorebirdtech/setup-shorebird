@@ -20,9 +20,3 @@ steps:
   - uses: shorebirdtech/setup-shorebird@v0
   - run: shorebird --version
 ```
-
-## Inputs
-
-The action takes the following inputs:
-
-- `flutter-version`: Which version of Flutter to install alongside Shorebird (e.g. 3.10.6)
