@@ -30,7 +30,3 @@ runs:
         Add-Content $env:GITHUB_PATH "$installDirectory\bin"
         Write-Output "added $installDirectory\bin to GITHUB_PATH"
       shell: pwsh
-    - name: 🐦 Install Flutter
-      if: ${{ inputs.flutter-version }}
-      run: shorebird flutter versions use ${{ inputs.flutter-version }}
-      shell: bash
