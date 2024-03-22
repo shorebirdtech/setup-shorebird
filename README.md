@@ -17,6 +17,6 @@ Installs and sets up [Shorebird](https://github.com/shorebirdtech/shorebird) for
 
 ```yaml
 steps:
-  - uses: shorebirdtech/setup-shorebird@v0
+  - uses: shorebirdtech/setup-shorebird@v1
   - run: shorebird --version
 ```
