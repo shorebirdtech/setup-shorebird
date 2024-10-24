@@ -13,10 +13,18 @@ Installs and sets up [Shorebird](https://github.com/shorebirdtech/shorebird) for
 
 ✅ Configures the specified version of Flutter
 
+✅ Optionally cache the Shorebird installation
+
+## Inputs
+
+- `cache`: Cache the Shorebird installation and artifacts. Default: false
+
 ## Usage
 
 ```yaml
 steps:
   - uses: shorebirdtech/setup-shorebird@v1
+    with:
+      cache: true # Optionally cache the Shorebird installation
   - run: shorebird --version
 ```

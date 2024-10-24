@@ -5,23 +5,73 @@ branding:
   icon: check-circle
   color: yellow
 
+inputs:
+  cache:
+    description: "Cache the Shorebird installation and artifacts. Default: false"
+    required: false
+    default: "false"
+
 runs:
   using: composite
   steps:
-    - name: 🐦 Install Shorebird (macOS / Linux)
-      if: runner.os != 'Windows'
+    - name: Determine Install Path (MacOS / Linux)
+      if: ${{ runner.os != 'Windows' }}
+      id: install-path
+      run: |
+        install_path=$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.shorebird" || printf %s "${XDG_CONFIG_HOME}/shorebird")
+        echo install_path=$install_path >> $GITHUB_ENV
+      shell: bash
+
+    - name: Determine Install Path (Windows)
+      if: ${{ runner.os == 'Windows' }}
+      id: install-path-windows
+      run: |
+        $install_path = [IO.Path]::Combine($home, ".shorebird")
+        Write-Output "install_path=$install_path" >> $env:GITHUB_ENV
+      shell: pwsh
+
+    - name: 💾 Configure Shorebird Cache
+      if: ${{ inputs.cache == 'true' }}
+      id: cache-shorebird
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.install_path }}
+        key: shorebird-cache-key-${{ runner.os }}-${{ runner.arch }}
+
+    - name: 🐦 Install Shorebird (MacOS / Linux)
+      if: ${{ steps.cache-shorebird.outputs.cache-hit != 'true' && runner.os != 'Windows' }}
       run: |
         curl --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/shorebirdtech/install/main/install.sh -sSf | bash -s -- --force
-        install_path=$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.shorebird" || printf %s "${XDG_CONFIG_HOME}/shorebird")
-        echo $install_path/bin >> $GITHUB_PATH
-        echo "added $install_path/bin to GITHUB_PATH"
       shell: bash
+
     - name: 🐦 Install Shorebird (Windows)
-      if: runner.os == 'Windows'
+      if: ${{ steps.cache-shorebird.outputs.cache-hit != 'true' && runner.os == 'Windows' }}
       run: |
         Set-ExecutionPolicy RemoteSigned -scope CurrentUser # Needed to execute remote scripts
         iwr -UseBasicParsing 'https://raw.githubusercontent.com/shorebirdtech/install/main/install.ps1'|iex
-        $installDirectory = [IO.Path]::Combine($home, ".shorebird")
-        Add-Content $env:GITHUB_PATH "$installDirectory\bin"
+      shell: pwsh
+
+    - name: ➕ Add Shorebird to Path (MacOS / Linux)
+      if: ${{ runner.os != 'Windows' }}
+      run: |
+        install_path=${{ env.install_path }}
+        echo $install_path/bin >> $GITHUB_PATH
+        echo "added $install_path/bin to GITHUB_PATH"
+      shell: bash
+
+    - name: ➕ Add Shorebird to Path (Windows)
+      if: ${{ runner.os == 'Windows' }}
+      run: |
+        Add-Content $env:GITHUB_PATH "${{ env.install_path }}\bin"
         Write-Output "added $installDirectory\bin to GITHUB_PATH"
+      shell: pwsh
+
+    - name: 🍄 Ensure Shorebird is Up-to-Date (MacOS / Linux)
+      if: ${{ steps.cache-shorebird.outputs.cache-hit == 'true' && runner.os != 'Windows' }}
+      run: shorebird upgrade
+      shell: bash
+
+    - name: 🍄 Ensure Shorebird is Up-to-Date (Windows)
+      if: ${{ steps.cache-shorebird.outputs.cache-hit == 'true' && runner.os == 'Windows' }}
+      run: shorebird upgrade
       shell: pwsh
