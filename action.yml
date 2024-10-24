@@ -27,7 +27,7 @@ runs:
       id: install-path-windows
       run: |
         $install_path = [IO.Path]::Combine($home, ".shorebird")
-        install_path=$install_path >> $env:GITHUB_ENV
+        Write-Output "install_path=$install_path" >> $env:GITHUB_ENV
       shell: pwsh
 
     - name: 💾 Configure Shorebird Cache
