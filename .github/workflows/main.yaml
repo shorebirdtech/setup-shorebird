@@ -18,7 +18,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - uses: ./        
+      - uses: ./
+        with:
+          cache: true
       - if: runner.os != 'Windows'
         run: |
           if [[ $(shorebird --version) =~ "Engine • revision" ]]; then          
