@@ -31,6 +31,7 @@ runs:
       shell: pwsh
 
     - name: 💾 Configure Shorebird Cache
+      if: ${{ inputs.cache == 'true' }}
       id: cache-shorebird
       uses: actions/cache@v4
       with:
