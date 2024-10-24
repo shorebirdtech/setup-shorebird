@@ -16,7 +16,7 @@ runs:
   steps:
     - name: Determine Install Path (MacOS / Linux)
       if: ${{ runner.os != 'Windows' }}
-      id: install-path-unix
+      id: install-path
       run: |
         install_path=$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.shorebird" || printf %s "${XDG_CONFIG_HOME}/shorebird")
         echo install_path=$install_path >> $GITHUB_ENV
@@ -30,45 +30,38 @@ runs:
         install_path=$install_path >> $env:GITHUB_ENV
       shell: pwsh
 
-    - name: 💾 Configure Shorebird Cache (MacOS / Linux)
-      id: cache-shorebird-unix
+    - name: 💾 Configure Shorebird Cache
+      id: cache-shorebird
       uses: actions/cache@v4
       with:
-        path: ${{ steps.install-path-unix.outputs.install_path }}
-        key: shorebird-cache-key-${{ runner.os }}-${{ runner.arch }}
-
-    - name: 💾 Configure Shorebird Cache (Windows)
-      id: cache-shorebird-windows
-      uses: actions/cache@v4
-      with:
-        path: ${{ steps.install-path-windows.outputs.install_path }}
+        path: ${{ env.install_path }}
         key: shorebird-cache-key-${{ runner.os }}-${{ runner.arch }}
 
     - name: 🐦 Install Shorebird (MacOS / Linux)
-      if: ${{ steps.cache-shorebird-unix.outputs.cache-hit != 'true' && runner.os != 'Windows' }}
+      if: ${{ steps.cache-shorebird.outputs.cache-hit != 'true' && runner.os != 'Windows' }}
       run: |
         curl --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/shorebirdtech/install/main/install.sh -sSf | bash -s -- --force
-        install_path=${{ steps.install-path-unix.outputs.install_path }}
+        install_path=${{ env.install_path }}
         echo $install_path/bin >> $GITHUB_PATH
         echo "added $install_path/bin to GITHUB_PATH"
       shell: bash
 
     - name: 🐦 Install Shorebird (Windows)
-      if: ${{ steps.cache-shorebird-windows.outputs.cache-hit != 'true' && runner.os == 'Windows' }}
+      if: ${{ steps.cache-shorebird.outputs.cache-hit != 'true' && runner.os == 'Windows' }}
       run: |
         Set-ExecutionPolicy RemoteSigned -scope CurrentUser # Needed to execute remote scripts
         iwr -UseBasicParsing 'https://raw.githubusercontent.com/shorebirdtech/install/main/install.ps1'|iex
-        $installDirectory = ${{ steps.install-path-windows.outputs.install_path }}
+        $installDirectory = ${{ env.install_path }}
         Add-Content $env:GITHUB_PATH "$installDirectory\bin"
         Write-Output "added $installDirectory\bin to GITHUB_PATH"
       shell: pwsh
 
     - name: 🍄 Ensure Shorebird is Up-to-Date (MacOS / Linux)
-      if: ${{ steps.cache-shorebird-unix.outputs.cache-hit == 'true' && runner.os != 'Windows' }}
+      if: ${{ steps.cache-shorebird.outputs.cache-hit == 'true' && runner.os != 'Windows' }}
       run: shorebird upgrade
       shell: bash
 
     - name: 🍄 Ensure Shorebird is Up-to-Date (Windows)
-      if: ${{ steps.cache-shorebird-windows.outputs.cache-hit == 'true' && runner.os == 'Windows' }}
+      if: ${{ steps.cache-shorebird.outputs.cache-hit == 'true' && runner.os == 'Windows' }}
       run: shorebird upgrade
       shell: pwsh
