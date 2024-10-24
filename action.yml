@@ -61,8 +61,7 @@ runs:
     - name: ➕ Add Shorebird to Path (Windows)
       if: ${{ runner.os == 'Windows' }}
       run: |
-        $installDirectory = ${{ env.install_path }}
-        Add-Content $env:GITHUB_PATH "$installDirectory\bin"
+        Add-Content $env:GITHUB_PATH "${{ env.install_path }}\bin"
         Write-Output "added $installDirectory\bin to GITHUB_PATH"
       shell: pwsh
 
