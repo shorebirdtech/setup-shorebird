@@ -7,7 +7,7 @@ branding:
 
 inputs:
   cache:
-    description: "Cache the shorebird dependencies. Default: false"
+    description: "Cache the Shorebird installation and artifacts. Default: false"
     required: false
     default: "false"
 

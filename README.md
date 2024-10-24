@@ -17,7 +17,7 @@ Installs and sets up [Shorebird](https://github.com/shorebirdtech/shorebird) for
 
 ## Inputs
 
-- `cache`: Cache the shorebird dependencies. Default: false
+- `cache`: Cache the Shorebird installation and artifacts. Default: false
 
 ## Usage
 
