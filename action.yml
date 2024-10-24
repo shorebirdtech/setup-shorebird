@@ -41,9 +41,6 @@ runs:
       if: ${{ steps.cache-shorebird.outputs.cache-hit != 'true' && runner.os != 'Windows' }}
       run: |
         curl --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/shorebirdtech/install/main/install.sh -sSf | bash -s -- --force
-        install_path=${{ env.install_path }}
-        echo $install_path/bin >> $GITHUB_PATH
-        echo "added $install_path/bin to GITHUB_PATH"
       shell: bash
 
     - name: 🐦 Install Shorebird (Windows)
@@ -51,6 +48,19 @@ runs:
       run: |
         Set-ExecutionPolicy RemoteSigned -scope CurrentUser # Needed to execute remote scripts
         iwr -UseBasicParsing 'https://raw.githubusercontent.com/shorebirdtech/install/main/install.ps1'|iex
+      shell: pwsh
+
+    - name: ➕ Add Shorebird to Path (MacOS / Linux)
+      if: ${{ runner.os != 'Windows' }}
+      run: |
+        install_path=${{ env.install_path }}
+        echo $install_path/bin >> $GITHUB_PATH
+        echo "added $install_path/bin to GITHUB_PATH"
+      shell: bash
+
+    - name: ➕ Add Shorebird to Path (Windows)
+      if: ${{ runner.os == 'Windows' }}
+      run: |
         $installDirectory = ${{ env.install_path }}
         Add-Content $env:GITHUB_PATH "$installDirectory\bin"
         Write-Output "added $installDirectory\bin to GITHUB_PATH"
