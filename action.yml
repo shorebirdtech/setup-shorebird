@@ -34,14 +34,14 @@ runs:
       id: cache-shorebird-unix
       uses: actions/cache@v4
       with:
-        path: ${{ steps.install-path.outputs.install-path-unix }}
+        path: ${{ steps.install-path-unix.outputs.install_path }}
         key: shorebird-cache-key-${{ runner.os }}-${{ runner.arch }}
 
     - name: 💾 Configure Shorebird Cache (Windows)
       id: cache-shorebird-windows
       uses: actions/cache@v4
       with:
-        path: ${{ steps.install-path.outputs.install-path-windows }}
+        path: ${{ steps.install-path-windows.outputs.install_path }}
         key: shorebird-cache-key-${{ runner.os }}-${{ runner.arch }}
 
     - name: 🐦 Install Shorebird (MacOS / Linux)
