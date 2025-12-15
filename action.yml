@@ -33,7 +33,7 @@ runs:
     - name: 💾 Configure Shorebird Cache
       if: ${{ inputs.cache == 'true' }}
       id: cache-shorebird
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ${{ env.install_path }}
         key: shorebird-cache-key-${{ runner.os }}-${{ runner.arch }}
