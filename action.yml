@@ -37,15 +37,17 @@ runs:
       with:
         path: ${{ env.install_path }}
         key: shorebird-cache-key-${{ runner.os }}-${{ runner.arch }}
+        restore-keys: |
+          shorebird-cache-key-${{ runner.os }}-
 
     - name: 🐦 Install Shorebird (MacOS / Linux)
-      if: ${{ steps.cache-shorebird.outputs.cache-hit != 'true' && runner.os != 'Windows' }}
+      if: ${{ (inputs.cache != 'true' || steps.cache-shorebird.outputs.cache-hit != 'true') && runner.os != 'Windows' }}
       run: |
         curl --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/shorebirdtech/install/main/install.sh -sSf | bash -s -- --force
       shell: bash
 
     - name: 🐦 Install Shorebird (Windows)
-      if: ${{ steps.cache-shorebird.outputs.cache-hit != 'true' && runner.os == 'Windows' }}
+      if: ${{ (inputs.cache != 'true' || steps.cache-shorebird.outputs.cache-hit != 'true') && runner.os == 'Windows' }}
       run: |
         Set-ExecutionPolicy RemoteSigned -scope CurrentUser # Needed to execute remote scripts
         iwr -UseBasicParsing 'https://raw.githubusercontent.com/shorebirdtech/install/main/install.ps1'|iex
@@ -67,11 +69,11 @@ runs:
       shell: pwsh
 
     - name: 🍄 Ensure Shorebird is Up-to-Date (MacOS / Linux)
-      if: ${{ steps.cache-shorebird.outputs.cache-hit == 'true' && runner.os != 'Windows' }}
+      if: ${{ inputs.cache == 'true' && steps.cache-shorebird.outputs.cache-hit == 'true' && runner.os != 'Windows' }}
       run: shorebird upgrade
       shell: bash
 
     - name: 🍄 Ensure Shorebird is Up-to-Date (Windows)
-      if: ${{ steps.cache-shorebird.outputs.cache-hit == 'true' && runner.os == 'Windows' }}
+      if: ${{ inputs.cache == 'true' && steps.cache-shorebird.outputs.cache-hit == 'true' && runner.os == 'Windows' }}
       run: shorebird upgrade
       shell: pwsh
