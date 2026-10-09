@@ -18,6 +18,15 @@ Installs and sets up [Shorebird](https://github.com/shorebirdtech/shorebird) for
 ## Inputs
 
 - `cache`: Cache the Shorebird installation and artifacts. Default: false
+- `shorebird-version`: **Not recommended.** Pins the Shorebird CLI release to
+  install (the version `shorebird --version` prints, e.g. `1.6.125`; this is
+  not a Flutter version). Defaults to the latest stable release.
+  - Pinning is likely to break over time: Shorebird's servers require newer
+    CLI versions as they evolve, so an old pinned version will eventually be
+    rejected. It exists for those who need it.
+  - To build with a specific Flutter version, pass `--flutter-version` to
+    `shorebird release` instead. That is supported and doesn't require pinning
+    the CLI.
 
 ## Usage
 

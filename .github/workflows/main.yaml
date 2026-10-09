@@ -58,3 +58,37 @@ jobs:
             Write-Output "❌ Shorebird CLI is not installed."
             exit 1
           }
+
+  e2e-pinned:
+    name: e2e pinned (${{ matrix.os }}${{ matrix.cache == false && ', no cache' || '' }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+        cache: [true, false]
+
+    runs-on: ${{ matrix.os }}
+    env:
+      # Any released version other than latest; must exist as a v<version> tag
+      # in shorebirdtech/shorebird.
+      PINNED_VERSION: 1.6.124
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: $/
+        with:
+          cache: ${{ matrix.cache }}
+          shorebird-version: ${{ env.PINNED_VERSION }}
+      - name: 🚦 Assert Pinned Version
+        # pwsh on every OS so Windows runs shorebird.bat, not the bash script.
+        shell: pwsh
+        run: |
+          $actual = shorebird --version | Out-String
+          Write-Output $actual
+          if ($actual -like "*Shorebird $env:PINNED_VERSION *") {
+            Write-Output "✅ Shorebird $env:PINNED_VERSION is installed!"
+          } else {
+            Write-Output "❌ Expected Shorebird $env:PINNED_VERSION."
+            exit 1
+          }
