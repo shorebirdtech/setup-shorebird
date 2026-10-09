@@ -16,3 +16,5 @@ Users reference this action as `@v1`, a tag we move to each new v1.x.y. Moving i
 1. Verify downstream. shorebird-release and shorebird-patch both use `shorebirdtech/setup-shorebird@v1` in their e2e jobs. After moving `v1`, re-run the latest `ci` run on `main` in each and confirm it passes.
 
 To roll back, point `v1` at the previous release (`git tag -f v1 v1.2.2 && git push -f origin refs/tags/v1`).
+
+`v1.1`, `v1.2`, and `v1.2.1` are stale tags from before v0.1.0 (March 2023), not releases. Versions continue from v1.3.0 so they sort above them; never roll back to them. The release before v1.3.0 is v1.0.2.
