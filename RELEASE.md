@@ -1,16 +1,20 @@
 # Releasing Setup Shorebird
 
-These are the steps needed to create a new release:
+Users reference this action as `@v1`, a tag we move to each new v1.x.y. Moving it ships the release to everyone, so tag the exact version first and move `v1` last.
 
-1. Create a new release in GitHub
-   - Click on `Releases -> Draft a new release`
-1. Make sure to name the release `v<VERSION>` (e.g. v1.2.3)
-1. Click on `Generate release notes`
-1. Click on `Publish release`
-1. Update the current major version tag to point to the latest release. For example, if we just released v0.1.2, we'll need to make sure the `v0` tag points to the same commit as `v0.1.2`
+1. Confirm the `ci` workflow is green on the `main` commit you are releasing.
+1. Create the release (patch bump for fixes, minor for new inputs; a breaking change needs a new major):
    ```sh
-   # force update the latest release tag
-   git tag -f v0 v0.1.2
-   # push the tag
-   git push origin :refs/tags/v0
+   gh release create v1.2.3 --target <main sha> --generate-notes
    ```
+1. Move the major tag to it:
+   ```sh
+   git fetch --tags --force
+   git tag -f v1 v1.2.3
+   git push -f origin refs/tags/v1
+   ```
+1. Verify downstream. shorebird-release and shorebird-patch both use `shorebirdtech/setup-shorebird@v1` in their e2e jobs. After moving `v1`, re-run the latest `ci` run on `main` in each and confirm it passes.
+
+To roll back, point `v1` at the previous release (`git tag -f v1 v1.2.2 && git push -f origin refs/tags/v1`).
+
+`v1.1`, `v1.2`, and `v1.2.1` are stale tags from before v0.1.0 (March 2023), not releases. Versions continue from v1.3.0 so they sort above them; never roll back to them. The release before v1.3.0 is v1.0.2.

@@ -1,0 +1,8 @@
+rules:
+  unpinned-uses:
+    config:
+      policies:
+        # Sibling Shorebird actions are tested at the tag users get, so a
+        # moved v1 is exercised by this repo's e2e.
+        shorebirdtech/*: ref-pin
+        "*": hash-pin

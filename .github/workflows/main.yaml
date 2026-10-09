@@ -5,31 +5,51 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   semantic-pull-request:
-    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/semantic_pull_request.yml@v1
+    permissions:
+      pull-requests: read
+    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/semantic_pull_request.yml@61d25935870f12a1f2c23f2a04d5f193c83f4e5d # v1.21.1
+
+  zizmor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: 🔒 zizmor
+        run: pipx run zizmor==1.30.1 --offline --config .github/zizmor.yml .
 
   e2e:
+    name: e2e (${{ matrix.os }}${{ matrix.cache == false && ', no cache' || '' }})
     strategy:
       fail-fast: false
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
+        cache: [true, false]
 
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: ./
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          cache: true
+          persist-credentials: false
+      - uses: $/
+        with:
+          cache: ${{ matrix.cache }}
       - if: runner.os != 'Windows'
+        shell: bash
         run: |
-          if [[ $(shorebird --version) =~ "Engine • revision" ]]; then          
+          if [[ $(shorebird --version) =~ "Engine • revision" ]]; then
             echo '✅ Shorebird CLI is installed!'
           else
             echo '❌ Shorebird CLI is not installed.'
             exit 1
           fi
       - if: runner.os == 'Windows'
+        shell: pwsh
         run: |
           $shorebird_version = shorebird --version
           if ($shorebird_version -match "Engine") {
