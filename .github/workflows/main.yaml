@@ -79,7 +79,7 @@ jobs:
       - uses: $/
         with:
           cache: ${{ matrix.cache }}
-          version: ${{ env.PINNED_VERSION }}
+          shorebird-version: ${{ env.PINNED_VERSION }}
       - name: 🚦 Assert Pinned Version
         # pwsh on every OS so Windows runs shorebird.bat, not the bash script.
         shell: pwsh
