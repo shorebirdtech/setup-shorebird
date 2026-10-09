@@ -13,3 +13,5 @@ updates:
       gha-deps:
         patterns:
           - "*"
+    cooldown:
+      default-days: 7

@@ -19,7 +19,7 @@ runs:
       id: install-path
       run: |
         install_path=$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.shorebird" || printf %s "${XDG_CONFIG_HOME}/shorebird")
-        echo install_path=$install_path >> $GITHUB_ENV
+        echo "path=$install_path" >> "$GITHUB_OUTPUT"
       shell: bash
 
     - name: Determine Install Path (Windows)
@@ -27,15 +27,15 @@ runs:
       id: install-path-windows
       run: |
         $install_path = [IO.Path]::Combine($home, ".shorebird")
-        Write-Output "install_path=$install_path" >> $env:GITHUB_ENV
+        Write-Output "path=$install_path" >> $env:GITHUB_OUTPUT
       shell: pwsh
 
     - name: 💾 Configure Shorebird Cache
       if: ${{ inputs.cache == 'true' }}
       id: cache-shorebird
-      uses: actions/cache@v6
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
-        path: ${{ env.install_path }}
+        path: ${{ steps.install-path.outputs.path || steps.install-path-windows.outputs.path }}
         key: shorebird-cache-key-${{ runner.os }}-${{ runner.arch }}
 
     - name: 🐦 Install Shorebird (MacOS / Linux)
@@ -51,19 +51,24 @@ runs:
         iwr -UseBasicParsing 'https://raw.githubusercontent.com/shorebirdtech/install/main/install.ps1'|iex
       shell: pwsh
 
+    # Adding the CLI to PATH is this action's job, so the GITHUB_PATH writes
+    # below are intentional.
     - name: ➕ Add Shorebird to Path (MacOS / Linux)
       if: ${{ runner.os != 'Windows' }}
-      run: |
-        install_path=${{ env.install_path }}
-        echo $install_path/bin >> $GITHUB_PATH
-        echo "added $install_path/bin to GITHUB_PATH"
+      env:
+        INSTALL_PATH: ${{ steps.install-path.outputs.path }}
+      run: | # zizmor: ignore[github-env]
+        echo "$INSTALL_PATH/bin" >> "$GITHUB_PATH"
+        echo "added $INSTALL_PATH/bin to GITHUB_PATH"
       shell: bash
 
     - name: ➕ Add Shorebird to Path (Windows)
       if: ${{ runner.os == 'Windows' }}
-      run: |
-        Add-Content $env:GITHUB_PATH "${{ env.install_path }}\bin"
-        Write-Output "added $installDirectory\bin to GITHUB_PATH"
+      env:
+        INSTALL_PATH: ${{ steps.install-path-windows.outputs.path }}
+      run: | # zizmor: ignore[github-env]
+        Add-Content $env:GITHUB_PATH "$env:INSTALL_PATH\bin"
+        Write-Output "added $env:INSTALL_PATH\bin to GITHUB_PATH"
       shell: pwsh
 
     - name: 🍄 Ensure Shorebird is Up-to-Date (MacOS / Linux)
