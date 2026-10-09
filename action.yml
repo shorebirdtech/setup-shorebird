@@ -10,6 +10,13 @@ inputs:
     description: "Cache the Shorebird installation and artifacts. Default: false"
     required: false
     default: "false"
+  version:
+    description: >-
+      The Shorebird CLI version to install (e.g. 1.6.125). Defaults to the
+      latest stable release. Discouraged: Shorebird's servers stop accepting
+      old CLI versions over time, so a pinned version will eventually break.
+    required: false
+    default: ""
 
 runs:
   using: composite
@@ -36,19 +43,46 @@ runs:
       uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ${{ steps.install-path.outputs.path || steps.install-path-windows.outputs.path }}
-        key: shorebird-cache-key-${{ runner.os }}-${{ runner.arch }}
+        key: shorebird-cache-key-${{ runner.os }}-${{ runner.arch }}${{ inputs.version && format('-{0}', inputs.version) || '' }}
 
     - name: 🐦 Install Shorebird (MacOS / Linux)
-      if: ${{ steps.cache-shorebird.outputs.cache-hit != 'true' && runner.os != 'Windows' }}
+      if: ${{ steps.cache-shorebird.outputs.cache-hit != 'true' && inputs.version == '' && runner.os != 'Windows' }}
       run: |
         curl --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/shorebirdtech/install/main/install.sh -sSf | bash -s -- --force
       shell: bash
 
     - name: 🐦 Install Shorebird (Windows)
-      if: ${{ steps.cache-shorebird.outputs.cache-hit != 'true' && runner.os == 'Windows' }}
+      if: ${{ steps.cache-shorebird.outputs.cache-hit != 'true' && inputs.version == '' && runner.os == 'Windows' }}
       run: |
         Set-ExecutionPolicy RemoteSigned -scope CurrentUser # Needed to execute remote scripts
         iwr -UseBasicParsing 'https://raw.githubusercontent.com/shorebirdtech/install/main/install.ps1'|iex
+      shell: pwsh
+
+    # A pinned version skips the installer, which would first download the
+    # latest CLI and its Flutter. Clone the CLI at the release tag instead,
+    # as the installer does for the stable branch.
+    - name: 📌 Install Pinned Shorebird (MacOS / Linux)
+      if: ${{ steps.cache-shorebird.outputs.cache-hit != 'true' && inputs.version != '' && runner.os != 'Windows' }}
+      env:
+        INSTALL_PATH: ${{ steps.install-path.outputs.path }}
+        VERSION: ${{ inputs.version }}
+      run: |
+        rm -rf "$INSTALL_PATH"
+        git clone --quiet -c advice.detachedHead=false --branch "v${VERSION#v}" https://github.com/shorebirdtech/shorebird.git "$INSTALL_PATH"
+        "$INSTALL_PATH/bin/shorebird" --version
+      shell: bash
+
+    - name: 📌 Install Pinned Shorebird (Windows)
+      if: ${{ steps.cache-shorebird.outputs.cache-hit != 'true' && inputs.version != '' && runner.os == 'Windows' }}
+      env:
+        INSTALL_PATH: ${{ steps.install-path-windows.outputs.path }}
+        VERSION: ${{ inputs.version }}
+      run: |
+        if (Test-Path $env:INSTALL_PATH) { Remove-Item -Recurse -Force $env:INSTALL_PATH }
+        $tag = "v" + $env:VERSION.TrimStart("v")
+        git clone --quiet -c advice.detachedHead=false --branch $tag https://github.com/shorebirdtech/shorebird.git $env:INSTALL_PATH
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        & (Join-Path $env:INSTALL_PATH "bin\shorebird.ps1") --version
       shell: pwsh
 
     # Adding the CLI to PATH is this action's job, so the GITHUB_PATH writes
@@ -72,11 +106,11 @@ runs:
       shell: pwsh
 
     - name: 🍄 Ensure Shorebird is Up-to-Date (MacOS / Linux)
-      if: ${{ steps.cache-shorebird.outputs.cache-hit == 'true' && runner.os != 'Windows' }}
+      if: ${{ steps.cache-shorebird.outputs.cache-hit == 'true' && inputs.version == '' && runner.os != 'Windows' }}
       run: shorebird upgrade
       shell: bash
 
     - name: 🍄 Ensure Shorebird is Up-to-Date (Windows)
-      if: ${{ steps.cache-shorebird.outputs.cache-hit == 'true' && runner.os == 'Windows' }}
+      if: ${{ steps.cache-shorebird.outputs.cache-hit == 'true' && inputs.version == '' && runner.os == 'Windows' }}
       run: shorebird upgrade
       shell: pwsh
