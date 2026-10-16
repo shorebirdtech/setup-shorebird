@@ -40,13 +40,28 @@ runs:
         Write-Output "path=$install_path" >> $env:GITHUB_OUTPUT
       shell: pwsh
 
+    # Without a pinned version the installer takes the latest stable release,
+    # so the cache key has to name it. Otherwise a cache saved under an older
+    # release keeps restoring that release after a new one ships.
+    - name: 🔎 Resolve Stable Release
+      if: ${{ inputs.cache == 'true' && inputs.shorebird-version == '' }}
+      id: stable
+      run: |
+        sha=$(git ls-remote https://github.com/shorebirdtech/shorebird.git refs/heads/stable | cut -f1)
+        if [ -z "$sha" ]; then
+          echo "Could not resolve the Shorebird stable branch." >&2
+          exit 1
+        fi
+        echo "sha=$sha" >> "$GITHUB_OUTPUT"
+      shell: bash
+
     - name: 💾 Configure Shorebird Cache
       if: ${{ inputs.cache == 'true' }}
       id: cache-shorebird
       uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ${{ steps.install-path.outputs.path || steps.install-path-windows.outputs.path }}
-        key: shorebird-cache-key-${{ runner.os }}-${{ runner.arch }}${{ inputs.shorebird-version && format('-{0}', inputs.shorebird-version) || '' }}
+        key: shorebird-cache-key-${{ runner.os }}-${{ runner.arch }}-${{ inputs.shorebird-version || steps.stable.outputs.sha }}
 
     - name: 🐦 Install Shorebird (MacOS / Linux)
       if: ${{ steps.cache-shorebird.outputs.cache-hit != 'true' && inputs.shorebird-version == '' && runner.os != 'Windows' }}
