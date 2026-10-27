@@ -12,7 +12,7 @@ jobs:
   semantic-pull-request:
     permissions:
       pull-requests: read
-    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/semantic_pull_request.yml@61d25935870f12a1f2c23f2a04d5f193c83f4e5d # v1.21.1
+    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/semantic_pull_request.yml@bf86fc749b907c6cc60e655f7f2ef619287b1b15 # v2.0.3
 
   zizmor:
     runs-on: ubuntu-latest
