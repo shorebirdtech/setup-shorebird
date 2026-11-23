@@ -87,3 +87,36 @@ jobs:
             Write-Output "❌ Expected Shorebird $env:PINNED_VERSION."
             exit 1
           }
+
+  e2e-flutter:
+    name: e2e flutter (${{ matrix.os }}${{ matrix.cache == false && ', no cache' || '' }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+        cache: [true, false]
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: $/
+        with:
+          cache: ${{ matrix.cache }}
+          flutter: true
+      - name: 🚦 Assert Shorebird's Flutter Is on PATH
+        # pwsh on every OS so Windows runs flutter.bat, not the bash script.
+        shell: pwsh
+        run: |
+          $flutter = (Get-Command flutter).Source
+          Write-Output "flutter: $flutter"
+          if ($flutter -notlike "*shorebird*") {
+            Write-Output "❌ flutter on PATH is not Shorebird's."
+            exit 1
+          }
+          flutter --version
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dart --version
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Write-Output "✅ Shorebird's Flutter is on PATH!"
