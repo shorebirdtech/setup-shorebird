@@ -10,6 +10,14 @@ inputs:
     description: "Cache the Shorebird installation and artifacts. Default: false"
     required: false
     default: "false"
+  flutter-version:
+    description: >-
+      A Flutter version to install and precache (what you pass to
+      `shorebird release --flutter-version`, e.g. 3.38.5), so builds with it
+      don't download it. Kept in the cache when `cache` is true. Defaults to
+      none: the CLI's own Flutter is installed either way.
+    required: false
+    default: ""
   shorebird-version:
     description: >-
       Not recommended. Pins the Shorebird CLI release to install (the version
@@ -41,7 +49,8 @@ runs:
       shell: pwsh
 
     # Without a pinned version the installer takes the latest stable release,
-    # so the cache key has to name it. Otherwise a cache saved under an older
+    # so the cache key has to name it, and the Flutter version when one is
+    # precached, so a cache saved without it isn't restored as if it held it. Otherwise a cache saved under an older
     # release keeps restoring that release after a new one ships.
     - name: 🔎 Resolve Stable Release
       if: ${{ inputs.cache == 'true' && inputs.shorebird-version == '' }}
@@ -61,7 +70,7 @@ runs:
       uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ${{ steps.install-path.outputs.path || steps.install-path-windows.outputs.path }}
-        key: shorebird-cache-key-${{ runner.os }}-${{ runner.arch }}-${{ inputs.shorebird-version || steps.stable.outputs.sha }}
+        key: shorebird-cache-key-${{ runner.os }}-${{ runner.arch }}-${{ inputs.shorebird-version || steps.stable.outputs.sha }}${{ inputs.flutter-version && format('-flutter-{0}', inputs.flutter-version) || '' }}
 
     - name: 🐦 Install Shorebird (MacOS / Linux)
       if: ${{ steps.cache-shorebird.outputs.cache-hit != 'true' && inputs.shorebird-version == '' && runner.os != 'Windows' }}
@@ -131,4 +140,20 @@ runs:
     - name: 🍄 Ensure Shorebird is Up-to-Date (Windows)
       if: ${{ steps.cache-shorebird.outputs.cache-hit == 'true' && inputs.shorebird-version == '' && runner.os == 'Windows' }}
       run: shorebird upgrade
+      shell: pwsh
+
+    # Runs on a cache hit too: it returns at once when the cache already
+    # holds that Flutter, and installs it when the CLI upgrade above moved on.
+    - name: 🐦 Precache Flutter (MacOS / Linux)
+      if: ${{ inputs.flutter-version != '' && runner.os != 'Windows' }}
+      env:
+        FLUTTER_VERSION: ${{ inputs.flutter-version }}
+      run: shorebird flutter precache --flutter-version "$FLUTTER_VERSION"
+      shell: bash
+
+    - name: 🐦 Precache Flutter (Windows)
+      if: ${{ inputs.flutter-version != '' && runner.os == 'Windows' }}
+      env:
+        FLUTTER_VERSION: ${{ inputs.flutter-version }}
+      run: shorebird flutter precache --flutter-version $env:FLUTTER_VERSION
       shell: pwsh

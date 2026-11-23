@@ -87,3 +87,33 @@ jobs:
             Write-Output "❌ Expected Shorebird $env:PINNED_VERSION."
             exit 1
           }
+
+  e2e-flutter-version:
+    name: e2e flutter-version (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+
+    runs-on: ${{ matrix.os }}
+    env:
+      # A Flutter version Shorebird supports other than the CLI's own.
+      FLUTTER_VERSION: 3.38.5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+      - name: 🚦 Assert Flutter Precached
+        shell: pwsh
+        run: |
+          $root = Split-Path (Split-Path (Get-Command shorebird).Source)
+          $stamps = Get-ChildItem (Join-Path $root "bin/cache/flutter") -Filter .shorebird_precache -Recurse -Depth 1 -Force
+          if ($stamps.Count -ge 1) {
+            Write-Output "✅ Flutter $env:FLUTTER_VERSION is precached."
+          } else {
+            Write-Output "❌ No precached Flutter in $root."
+            exit 1
+          }

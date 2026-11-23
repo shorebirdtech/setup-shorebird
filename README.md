@@ -18,6 +18,10 @@ Installs and sets up [Shorebird](https://github.com/shorebirdtech/shorebird) for
 ## Inputs
 
 - `cache`: Cache the Shorebird installation and artifacts. Default: false
+- `flutter-version`: A Flutter version to install and precache, as you'd pass
+  it to `shorebird release --flutter-version` (e.g. `3.38.5`). Builds with that
+  version then don't download Flutter or its artifacts, and with `cache: true`
+  it is kept in the cache between runs. Defaults to none.
 - `shorebird-version`: **Not recommended.** Pins the Shorebird CLI release to
   install (the version `shorebird --version` prints, e.g. `1.6.125`; this is
   not a Flutter version). Defaults to the latest stable release.
@@ -37,3 +41,19 @@ steps:
       cache: true # Optionally cache the Shorebird installation
   - run: shorebird --version
 ```
+
+### Building with a specific Flutter version
+
+```yaml
+steps:
+  - uses: shorebirdtech/setup-shorebird@v1
+    with:
+      cache: true
+      flutter-version: 3.38.5
+  - run: shorebird release android --flutter-version 3.38.5
+```
+
+Android builds also download Flutter's engine libraries into the Gradle cache
+(`~/.gradle`), which this action doesn't keep. To keep them between runs, cache
+Gradle too, for example with
+[`gradle/actions/setup-gradle`](https://github.com/gradle/actions).
