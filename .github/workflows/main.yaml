@@ -89,13 +89,13 @@ jobs:
           }
 
   e2e-flutter:
-    name: e2e flutter (${{ matrix.os }}${{ matrix.cache == false && ', no cache' || '' }}${{ matrix.flutter-version && format(', {0}', matrix.flutter-version) || '' }})
+    name: e2e flutter (${{ matrix.os }}${{ matrix.cache == false && ', no cache' || '' }}${{ matrix.flutter-version != 'latest' && format(', {0}', matrix.flutter-version) || '' }})
     strategy:
       fail-fast: false
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
         cache: [true, false]
-        flutter-version: [""]
+        flutter-version: [latest]
         # A version other than the CLI's own, to cover version resolution.
         # Must be in `shorebird flutter versions list`.
         include:
@@ -111,7 +111,6 @@ jobs:
       - uses: $/
         with:
           cache: ${{ matrix.cache }}
-          flutter: true
           flutter-version: ${{ matrix.flutter-version }}
       - name: 🚦 Assert Shorebird's Flutter Is on PATH
         # pwsh on every OS so Windows runs flutter.bat, not the bash script.
@@ -128,7 +127,7 @@ jobs:
           $version = flutter --version | Out-String
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Write-Output $version
-          if ($env:FLUTTER_VERSION -and $version -notlike "*Flutter $env:FLUTTER_VERSION *") {
+          if ($env:FLUTTER_VERSION -ne "latest" -and $version -notlike "*Flutter $env:FLUTTER_VERSION *") {
             Write-Output "❌ Expected Flutter $env:FLUTTER_VERSION."
             exit 1
           }

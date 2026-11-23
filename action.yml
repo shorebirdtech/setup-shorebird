@@ -20,18 +20,14 @@ inputs:
       --flutter-version to `shorebird release` instead.
     required: false
     default: ""
-  flutter:
-    description: >-
-      Also install Shorebird's Flutter and put `flutter` and `dart` on PATH,
-      with its build artifacts precached. Needs Shorebird CLI 1.6.148 or
-      later. Default: false
-    required: false
-    default: "false"
   flutter-version:
     description: >-
-      With `flutter: true`, the Flutter version (e.g. 3.38.5) or commit to
-      install (not `system` or `fvm`). Defaults to the Flutter this Shorebird
-      CLI builds with. Ignored without `flutter: true`.
+      Also install Shorebird's Flutter, precache its build artifacts, and put
+      `flutter` and `dart` on PATH: a Flutter version (e.g. 3.38.5), a
+      commit, or `latest` for the Flutter this Shorebird CLI builds with, as
+      `shorebird release --flutter-version` takes it (not `system` or `fvm`).
+      Needs Shorebird CLI 1.6.148 or later. Default: none, Flutter isn't put
+      on PATH.
     required: false
     default: ""
 
@@ -75,10 +71,10 @@ runs:
       uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ${{ steps.install-path.outputs.path || steps.install-path-windows.outputs.path }}
-        # With flutter: true the installation also holds Flutter's precached
+        # With flutter-version the installation also holds Flutter's precached
         # artifacts, so name the Flutter in the key. Without it the key stays
         # as it was, so existing caches keep hitting.
-        key: shorebird-cache-key-${{ runner.os }}-${{ runner.arch }}-${{ inputs.shorebird-version || steps.stable.outputs.sha }}${{ inputs.flutter == 'true' && format('-flutter-{0}', inputs.flutter-version || 'default') || '' }}
+        key: shorebird-cache-key-${{ runner.os }}-${{ runner.arch }}-${{ inputs.shorebird-version || steps.stable.outputs.sha }}${{ inputs.flutter-version != '' && format('-flutter-{0}', inputs.flutter-version) || '' }}
 
     - name: 🐦 Install Shorebird (MacOS / Linux)
       if: ${{ steps.cache-shorebird.outputs.cache-hit != 'true' && inputs.shorebird-version == '' && runner.os != 'Windows' }}
@@ -154,21 +150,18 @@ runs:
     # the cache input covers it. Adding Flutter to PATH is this action's job,
     # so the GITHUB_PATH writes below are intentional.
     - name: 🐦 Install Flutter (MacOS / Linux)
-      if: ${{ inputs.flutter == 'true' && runner.os != 'Windows' }}
+      if: ${{ inputs.flutter-version != '' && runner.os != 'Windows' }}
       env:
         INSTALL_PATH: ${{ steps.install-path.outputs.path }}
         FLUTTER_VERSION: ${{ inputs.flutter-version }}
       run: | # zizmor: ignore[github-env]
-        args=()
-        if [ -n "$FLUTTER_VERSION" ]; then
-          args=(--flutter-version "$FLUTTER_VERSION")
-        fi
+        args=(--flutter-version "$FLUTTER_VERSION")
         # `shorebird flutter <missing> --help` prints flutter's usage and exits
         # 0, so look for the subcommand in that usage instead.
         subcommands=$(shorebird flutter --help)
         has_subcommand() { grep -qE "^  $1 " <<< "$subcommands"; }
         if ! has_subcommand precache; then
-          echo "::error::flutter: true needs Shorebird CLI 1.6.148 or later, which has shorebird flutter precache."
+          echo "::error::flutter-version needs Shorebird CLI 1.6.148 or later, which has shorebird flutter precache."
           exit 1
         fi
         shorebird flutter precache "${args[@]}"
@@ -181,7 +174,7 @@ runs:
           # resolves the version as the CLI does: a release branch in the
           # default Flutter checkout, or a commit.
           revision=$(cat "$INSTALL_PATH/bin/internal/flutter.version")
-          if [ -n "$FLUTTER_VERSION" ] && [ "$FLUTTER_VERSION" != latest ]; then
+          if [ "$FLUTTER_VERSION" != latest ]; then
             ref="refs/remotes/origin/flutter_release/$FLUTTER_VERSION"
             if [[ "$FLUTTER_VERSION" =~ ^[0-9a-fA-F]{4,40}$ ]]; then
               ref="$FLUTTER_VERSION"
@@ -201,18 +194,17 @@ runs:
       shell: bash
 
     - name: 🐦 Install Flutter (Windows)
-      if: ${{ inputs.flutter == 'true' && runner.os == 'Windows' }}
+      if: ${{ inputs.flutter-version != '' && runner.os == 'Windows' }}
       env:
         INSTALL_PATH: ${{ steps.install-path-windows.outputs.path }}
         FLUTTER_VERSION: ${{ inputs.flutter-version }}
       run: | # zizmor: ignore[github-env]
-        $flutterArgs = @()
-        if ($env:FLUTTER_VERSION) { $flutterArgs = @("--flutter-version", $env:FLUTTER_VERSION) }
+        $flutterArgs = @("--flutter-version", $env:FLUTTER_VERSION)
         # `shorebird flutter <missing> --help` prints flutter's usage and exits
         # 0, so look for the subcommand in that usage instead.
         $subcommands = shorebird flutter --help | Out-String
         if ($subcommands -notmatch '(?m)^  precache ') {
-          Write-Output "::error::flutter: true needs Shorebird CLI 1.6.148 or later, which has shorebird flutter precache."
+          Write-Output "::error::flutter-version needs Shorebird CLI 1.6.148 or later, which has shorebird flutter precache."
           exit 1
         }
         shorebird flutter precache @flutterArgs
@@ -229,7 +221,7 @@ runs:
           # default Flutter checkout, or a commit.
           $cacheDir = Join-Path $env:INSTALL_PATH "bin\cache\flutter"
           $revision = (Get-Content (Join-Path $env:INSTALL_PATH "bin\internal\flutter.version") -Raw).Trim()
-          if ($env:FLUTTER_VERSION -and $env:FLUTTER_VERSION -ne "latest") {
+          if ($env:FLUTTER_VERSION -ne "latest") {
             $ref = "refs/remotes/origin/flutter_release/$env:FLUTTER_VERSION"
             if ($env:FLUTTER_VERSION -match '^[0-9a-fA-F]{4,40}$') { $ref = $env:FLUTTER_VERSION }
             $revision = git -C (Join-Path $cacheDir $revision) rev-parse $ref
