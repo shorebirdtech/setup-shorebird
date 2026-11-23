@@ -26,8 +26,9 @@ inputs:
       `flutter` and `dart` on PATH: a Flutter version (e.g. 3.38.5), a
       commit, or `latest` for the Flutter this Shorebird CLI builds with, as
       `shorebird release --flutter-version` takes it (not `system` or `fvm`).
-      Needs Shorebird CLI 1.6.148 or later. Default: none, Flutter isn't put
-      on PATH.
+      Default: none, Flutter isn't put on PATH. Before Shorebird CLI 1.6.148,
+      only `latest` goes on PATH (without precaching); another version gives a
+      warning and is downloaded by `shorebird release` as before.
     required: false
     default: ""
 
@@ -160,11 +161,17 @@ runs:
         # 0, so look for the subcommand in that usage instead.
         subcommands=$(shorebird flutter --help)
         has_subcommand() { grep -qE "^  $1 " <<< "$subcommands"; }
-        if ! has_subcommand precache; then
-          echo "::error::flutter-version needs Shorebird CLI 1.6.148 or later, which has shorebird flutter precache."
-          exit 1
+        # CLIs before 1.6.148 can't install a Flutter ahead of a build. Their
+        # own Flutter is installed already, so it can still go on PATH (its
+        # artifacts download on first use); another version can't.
+        if has_subcommand precache; then
+          shorebird flutter precache "${args[@]}"
+        elif [ "$FLUTTER_VERSION" = latest ]; then
+          echo "::notice::This Shorebird CLI has no shorebird flutter precache (1.6.148+), so Flutter's artifacts download on first use."
+        else
+          echo "::warning::This Shorebird CLI can't install Flutter $FLUTTER_VERSION before a build (that needs 1.6.148 or later), so it isn't on PATH. shorebird release --flutter-version $FLUTTER_VERSION still downloads it."
+          exit 0
         fi
-        shorebird flutter precache "${args[@]}"
 
         if has_subcommand path; then
           flutter_dir=$(shorebird flutter path "${args[@]}" | tail -n 1)
@@ -203,12 +210,18 @@ runs:
         # `shorebird flutter <missing> --help` prints flutter's usage and exits
         # 0, so look for the subcommand in that usage instead.
         $subcommands = shorebird flutter --help | Out-String
-        if ($subcommands -notmatch '(?m)^  precache ') {
-          Write-Output "::error::flutter-version needs Shorebird CLI 1.6.148 or later, which has shorebird flutter precache."
-          exit 1
+        # CLIs before 1.6.148 can't install a Flutter ahead of a build. Their
+        # own Flutter is installed already, so it can still go on PATH (its
+        # artifacts download on first use); another version can't.
+        if ($subcommands -match '(?m)^  precache ') {
+          shorebird flutter precache @flutterArgs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        } elseif ($env:FLUTTER_VERSION -eq "latest") {
+          Write-Output "::notice::This Shorebird CLI has no shorebird flutter precache (1.6.148+), so Flutter's artifacts download on first use."
+        } else {
+          Write-Output "::warning::This Shorebird CLI can't install Flutter $env:FLUTTER_VERSION before a build (that needs 1.6.148 or later), so it isn't on PATH. shorebird release --flutter-version $env:FLUTTER_VERSION still downloads it."
+          exit 0
         }
-        shorebird flutter precache @flutterArgs
-        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
         if ($subcommands -match '(?m)^  path ') {
           $flutterDir = shorebird flutter path @flutterArgs | Select-Object -Last 1

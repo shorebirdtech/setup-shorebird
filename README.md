@@ -32,8 +32,10 @@ Installs and sets up [Shorebird](https://github.com/shorebirdtech/shorebird) for
   steps can run `flutter` and `dart`. Takes a Flutter version (e.g. `3.38.5`),
   a commit, or `latest` for the Flutter this Shorebird CLI builds with, as
   `shorebird release --flutter-version` does (but not `system` or `fvm`).
-  Default: none, so Flutter isn't put on the path. Needs Shorebird CLI 1.6.148
-  or later. Use `shorebird flutter versions list` to see what's available.
+  Default: none, so Flutter isn't put on the path. Before Shorebird CLI
+  1.6.148 (e.g. with an older `shorebird-version`), only `latest` goes on the
+  path, without precaching; another version gives a warning and is downloaded
+  by `shorebird release` as before. Use `shorebird flutter versions list` to see what's available.
   With `cache: true`, the cache covers Flutter too (on macOS that includes its
   iOS artifacts, a few GB).
 
