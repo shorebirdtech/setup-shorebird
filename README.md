@@ -30,11 +30,12 @@ Installs and sets up [Shorebird](https://github.com/shorebirdtech/shorebird) for
 - `flutter`: Also install Shorebird's Flutter, precache its build artifacts,
   and add its `bin` and the pub cache's `bin` to the path, so later steps can
   run `flutter` and `dart`. Default: false. Needs Shorebird CLI 1.6.148 or
-  later. With `cache: true`, the cache covers Flutter too.
+  later. With `cache: true`, the cache covers Flutter too (on macOS that
+  includes its iOS artifacts, a few GB).
 - `flutter-version`: With `flutter: true`, the Flutter version (e.g. `3.38.5`)
-  or commit to install, as `shorebird release --flutter-version` takes it.
-  Defaults to the Flutter this Shorebird CLI builds with. Use `shorebird flutter
-  versions list` to see what's available.
+  or commit to install (not `system` or `fvm`). Defaults to the Flutter this
+  Shorebird CLI builds with. Use `shorebird flutter versions list` to see
+  what's available.
 
 ## Usage
 

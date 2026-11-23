@@ -30,8 +30,8 @@ inputs:
   flutter-version:
     description: >-
       With `flutter: true`, the Flutter version (e.g. 3.38.5) or commit to
-      install, as `shorebird release --flutter-version` takes it. Defaults to
-      the Flutter this Shorebird CLI builds with.
+      install (not `system` or `fvm`). Defaults to the Flutter this Shorebird
+      CLI builds with. Ignored without `flutter: true`.
     required: false
     default: ""
 
@@ -163,13 +163,17 @@ runs:
         if [ -n "$FLUTTER_VERSION" ]; then
           args=(--flutter-version "$FLUTTER_VERSION")
         fi
-        if ! shorebird flutter precache --help >/dev/null 2>&1; then
+        # `shorebird flutter <missing> --help` prints flutter's usage and exits
+        # 0, so look for the subcommand in that usage instead.
+        subcommands=$(shorebird flutter --help)
+        has_subcommand() { grep -qE "^  $1 " <<< "$subcommands"; }
+        if ! has_subcommand precache; then
           echo "::error::flutter: true needs Shorebird CLI 1.6.148 or later, which has shorebird flutter precache."
           exit 1
         fi
         shorebird flutter precache "${args[@]}"
 
-        if shorebird flutter path --help >/dev/null 2>&1; then
+        if has_subcommand path; then
           flutter_dir=$(shorebird flutter path "${args[@]}" | tail -n 1)
         else
           # The CLI's documented layout, for CLIs without `shorebird flutter
@@ -204,17 +208,20 @@ runs:
       run: | # zizmor: ignore[github-env]
         $flutterArgs = @()
         if ($env:FLUTTER_VERSION) { $flutterArgs = @("--flutter-version", $env:FLUTTER_VERSION) }
-        shorebird flutter precache --help *> $null
-        if ($LASTEXITCODE -ne 0) {
+        # `shorebird flutter <missing> --help` prints flutter's usage and exits
+        # 0, so look for the subcommand in that usage instead.
+        $subcommands = shorebird flutter --help | Out-String
+        if ($subcommands -notmatch '(?m)^  precache ') {
           Write-Output "::error::flutter: true needs Shorebird CLI 1.6.148 or later, which has shorebird flutter precache."
           exit 1
         }
         shorebird flutter precache @flutterArgs
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-        shorebird flutter path --help *> $null
-        if ($LASTEXITCODE -eq 0) {
-          $flutterDir = (shorebird flutter path @flutterArgs | Select-Object -Last 1).Trim()
+        if ($subcommands -match '(?m)^  path ') {
+          $flutterDir = shorebird flutter path @flutterArgs | Select-Object -Last 1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $flutterDir = $flutterDir.Trim()
         } else {
           # The CLI's documented layout, for CLIs without `shorebird flutter
           # path`. Drop this once every supported CLI has that command. It
@@ -225,8 +232,9 @@ runs:
           if ($env:FLUTTER_VERSION -and $env:FLUTTER_VERSION -ne "latest") {
             $ref = "refs/remotes/origin/flutter_release/$env:FLUTTER_VERSION"
             if ($env:FLUTTER_VERSION -match '^[0-9a-fA-F]{4,40}$') { $ref = $env:FLUTTER_VERSION }
-            $revision = (git -C (Join-Path $cacheDir $revision) rev-parse $ref).Trim()
+            $revision = git -C (Join-Path $cacheDir $revision) rev-parse $ref
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            $revision = $revision.Trim()
           }
           $flutterDir = Join-Path $cacheDir $revision
         }

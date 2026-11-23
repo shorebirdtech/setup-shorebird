@@ -89,12 +89,19 @@ jobs:
           }
 
   e2e-flutter:
-    name: e2e flutter (${{ matrix.os }}${{ matrix.cache == false && ', no cache' || '' }})
+    name: e2e flutter (${{ matrix.os }}${{ matrix.cache == false && ', no cache' || '' }}${{ matrix.flutter-version && format(', {0}', matrix.flutter-version) || '' }})
     strategy:
       fail-fast: false
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
         cache: [true, false]
+        flutter-version: [""]
+        # A version other than the CLI's own, to cover version resolution.
+        # Must be in `shorebird flutter versions list`.
+        include:
+          - { os: macos-latest, cache: false, flutter-version: 3.38.5 }
+          - { os: ubuntu-latest, cache: false, flutter-version: 3.38.5 }
+          - { os: windows-latest, cache: false, flutter-version: 3.38.5 }
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -105,9 +112,12 @@ jobs:
         with:
           cache: ${{ matrix.cache }}
           flutter: true
+          flutter-version: ${{ matrix.flutter-version }}
       - name: 🚦 Assert Shorebird's Flutter Is on PATH
         # pwsh on every OS so Windows runs flutter.bat, not the bash script.
         shell: pwsh
+        env:
+          FLUTTER_VERSION: ${{ matrix.flutter-version }}
         run: |
           $flutter = (Get-Command flutter).Source
           Write-Output "flutter: $flutter"
@@ -115,8 +125,13 @@ jobs:
             Write-Output "❌ flutter on PATH is not Shorebird's."
             exit 1
           }
-          flutter --version
+          $version = flutter --version | Out-String
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Write-Output $version
+          if ($env:FLUTTER_VERSION -and $version -notlike "*Flutter $env:FLUTTER_VERSION *") {
+            Write-Output "❌ Expected Flutter $env:FLUTTER_VERSION."
+            exit 1
+          }
           dart --version
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Write-Output "✅ Shorebird's Flutter is on PATH!"
