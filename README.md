@@ -18,6 +18,11 @@ Installs and sets up [Shorebird](https://github.com/shorebirdtech/shorebird) for
 ## Inputs
 
 - `cache`: Cache the Shorebird installation and artifacts. Default: false
+- `flutter-version`: The Flutter version your build passes to
+  `shorebird release --flutter-version` (e.g. `3.38.5`). The action installs
+  and precaches it, and with `cache: true` keys the cache on its revision.
+  Defaults to the Flutter the Shorebird CLI builds with. Needs a Shorebird CLI
+  with `shorebird flutter precache`, including when `shorebird-version` is pinned.
 - `shorebird-version`: **Not recommended.** Pins the Shorebird CLI release to
   install (the version `shorebird --version` prints, e.g. `1.6.125`; this is
   not a Flutter version). Defaults to the latest stable release.
@@ -37,3 +42,38 @@ steps:
       cache: true # Optionally cache the Shorebird installation
   - run: shorebird --version
 ```
+
+### Caching
+
+With `cache: true`, the cache is keyed on the Flutter revision the build uses
+(the one `flutter-version` names, or the CLI's own when it's unset) and the
+Shorebird CLI release. A build with another Flutter version is a cache miss and
+installs it; a later build with a version cached before (a patch to an older
+release, say) restores that cache, until GitHub evicts it (after 7 days unused,
+or sooner past the repository's cache limit). After a new CLI release, the
+first run restores the older cache for that Flutter revision, upgrades the CLI
+and saves it again. With `shorebird-version` pinned, the CLI isn't upgraded.
+
+A version names the current commit of its Shorebird Flutter release branch,
+which can take fixes after it's cut. The cache key is that commit, so a moved
+branch is a cache miss that installs the new one, as `shorebird release
+--flutter-version` would build with. A patch builds with the commit its release
+was built with: to precache that for a release made before its branch moved,
+pass the Flutter commit hash that release was built with as
+`flutter-version`.
+
+If you build with one Flutter version, set it so the cache holds it:
+
+```yaml
+steps:
+  - uses: shorebirdtech/setup-shorebird@v1
+    with:
+      cache: true
+      flutter-version: 3.38.5
+  - run: shorebird release android --flutter-version 3.38.5
+```
+
+Android builds also download Flutter's engine libraries into the Gradle cache
+(`~/.gradle`), which this action doesn't keep. To keep them between runs, cache
+Gradle too, for example with
+[`gradle/actions/setup-gradle`](https://github.com/gradle/actions).
