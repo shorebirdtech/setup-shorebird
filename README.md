@@ -18,10 +18,10 @@ Installs and sets up [Shorebird](https://github.com/shorebirdtech/shorebird) for
 ## Inputs
 
 - `cache`: Cache the Shorebird installation and artifacts. Default: false
-- `flutter-version`: A Flutter version to install and precache, as you'd pass
-  it to `shorebird release --flutter-version` (e.g. `3.38.5`). Builds with that
-  version then don't download Flutter or its artifacts, and with `cache: true`
-  it is kept in the cache between runs. Defaults to none.
+- `flutter-version`: The Flutter version your build passes to
+  `shorebird release --flutter-version` (e.g. `3.38.5`). The action installs
+  and precaches it, and with `cache: true` keys the cache on its revision.
+  Defaults to the Flutter the Shorebird CLI builds with.
 - `shorebird-version`: **Not recommended.** Pins the Shorebird CLI release to
   install (the version `shorebird --version` prints, e.g. `1.6.125`; this is
   not a Flutter version). Defaults to the latest stable release.
@@ -42,7 +42,15 @@ steps:
   - run: shorebird --version
 ```
 
-### Building with a specific Flutter version
+### Caching
+
+With `cache: true`, the cache is keyed on the Flutter revision the build uses:
+the one `flutter-version` names, or the CLI's own when it's unset. A build with
+another Flutter version is a cache miss and installs it; a later build with a
+version cached before (a patch to an older release, say) restores that cache.
+A cache hit upgrades the Shorebird CLI to the latest stable release.
+
+If you build with one Flutter version, set it so the cache holds it:
 
 ```yaml
 steps:
