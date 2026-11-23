@@ -20,6 +20,17 @@ inputs:
       --flutter-version to `shorebird release` instead.
     required: false
     default: ""
+  flutter-version:
+    description: >-
+      Also install Shorebird's Flutter, precache its build artifacts, and put
+      `flutter` and `dart` on PATH: a Flutter version (e.g. 3.38.5), a
+      commit, or `latest` for the Flutter this Shorebird CLI builds with, as
+      `shorebird release --flutter-version` takes it (not `system` or `fvm`).
+      Default: none, Flutter isn't put on PATH. Before Shorebird CLI 1.6.148,
+      only `latest` goes on PATH (without precaching); another version gives a
+      warning and is downloaded by `shorebird release` as before.
+    required: false
+    default: ""
 
 runs:
   using: composite
@@ -61,7 +72,10 @@ runs:
       uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ${{ steps.install-path.outputs.path || steps.install-path-windows.outputs.path }}
-        key: shorebird-cache-key-${{ runner.os }}-${{ runner.arch }}-${{ inputs.shorebird-version || steps.stable.outputs.sha }}
+        # With flutter-version the installation also holds Flutter's precached
+        # artifacts, so name the Flutter in the key. Without it the key stays
+        # as it was, so existing caches keep hitting.
+        key: shorebird-cache-key-${{ runner.os }}-${{ runner.arch }}-${{ inputs.shorebird-version || steps.stable.outputs.sha }}${{ inputs.flutter-version != '' && format('-flutter-{0}', inputs.flutter-version) || '' }}
 
     - name: 🐦 Install Shorebird (MacOS / Linux)
       if: ${{ steps.cache-shorebird.outputs.cache-hit != 'true' && inputs.shorebird-version == '' && runner.os != 'Windows' }}
@@ -131,4 +145,112 @@ runs:
     - name: 🍄 Ensure Shorebird is Up-to-Date (Windows)
       if: ${{ steps.cache-shorebird.outputs.cache-hit == 'true' && inputs.shorebird-version == '' && runner.os == 'Windows' }}
       run: shorebird upgrade
+      shell: pwsh
+
+    # Flutter lives under the installation (bin/cache/flutter/<revision>), so
+    # the cache input covers it. Adding Flutter to PATH is this action's job,
+    # so the GITHUB_PATH writes below are intentional.
+    - name: 🐦 Install Flutter (MacOS / Linux)
+      if: ${{ inputs.flutter-version != '' && runner.os != 'Windows' }}
+      env:
+        INSTALL_PATH: ${{ steps.install-path.outputs.path }}
+        FLUTTER_VERSION: ${{ inputs.flutter-version }}
+      run: | # zizmor: ignore[github-env]
+        args=(--flutter-version "$FLUTTER_VERSION")
+        # `shorebird flutter <missing> --help` prints flutter's usage and exits
+        # 0, so look for the subcommand in that usage instead.
+        subcommands=$(shorebird flutter --help)
+        has_subcommand() { grep -qE "^  $1 " <<< "$subcommands"; }
+        # CLIs before 1.6.148 can't install a Flutter ahead of a build. Their
+        # own Flutter is installed already, so it can still go on PATH (its
+        # artifacts download on first use); another version can't.
+        if has_subcommand precache; then
+          shorebird flutter precache "${args[@]}"
+        elif [ "$FLUTTER_VERSION" = latest ]; then
+          echo "::notice::This Shorebird CLI has no shorebird flutter precache (1.6.148+), so Flutter's artifacts download on first use."
+        else
+          echo "::warning::This Shorebird CLI can't install Flutter $FLUTTER_VERSION before a build (that needs 1.6.148 or later), so it isn't on PATH. shorebird release --flutter-version $FLUTTER_VERSION still downloads it."
+          exit 0
+        fi
+
+        if has_subcommand path; then
+          flutter_dir=$(shorebird flutter path "${args[@]}" | tail -n 1)
+        else
+          # The CLI's documented layout, for CLIs without `shorebird flutter
+          # path`. Drop this once every supported CLI has that command. It
+          # resolves the version as the CLI does: a release branch in the
+          # default Flutter checkout, or a commit.
+          revision=$(cat "$INSTALL_PATH/bin/internal/flutter.version")
+          if [ "$FLUTTER_VERSION" != latest ]; then
+            ref="refs/remotes/origin/flutter_release/$FLUTTER_VERSION"
+            if [[ "$FLUTTER_VERSION" =~ ^[0-9a-fA-F]{4,40}$ ]]; then
+              ref="$FLUTTER_VERSION"
+            fi
+            revision=$(git -C "$INSTALL_PATH/bin/cache/flutter/$revision" rev-parse "$ref")
+          fi
+          flutter_dir="$INSTALL_PATH/bin/cache/flutter/$revision"
+        fi
+        if [ ! -x "$flutter_dir/bin/flutter" ]; then
+          echo "::error::Flutter is not at $flutter_dir."
+          exit 1
+        fi
+
+        echo "$flutter_dir/bin" >> "$GITHUB_PATH"
+        echo "${PUB_CACHE:-$HOME/.pub-cache}/bin" >> "$GITHUB_PATH"
+        echo "added $flutter_dir/bin and the pub cache bin to GITHUB_PATH"
+      shell: bash
+
+    - name: 🐦 Install Flutter (Windows)
+      if: ${{ inputs.flutter-version != '' && runner.os == 'Windows' }}
+      env:
+        INSTALL_PATH: ${{ steps.install-path-windows.outputs.path }}
+        FLUTTER_VERSION: ${{ inputs.flutter-version }}
+      run: | # zizmor: ignore[github-env]
+        $flutterArgs = @("--flutter-version", $env:FLUTTER_VERSION)
+        # `shorebird flutter <missing> --help` prints flutter's usage and exits
+        # 0, so look for the subcommand in that usage instead.
+        $subcommands = shorebird flutter --help | Out-String
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        # CLIs before 1.6.148 can't install a Flutter ahead of a build. Their
+        # own Flutter is installed already, so it can still go on PATH (its
+        # artifacts download on first use); another version can't.
+        if ($subcommands -match '(?m)^  precache ') {
+          shorebird flutter precache @flutterArgs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        } elseif ($env:FLUTTER_VERSION -eq "latest") {
+          Write-Output "::notice::This Shorebird CLI has no shorebird flutter precache (1.6.148+), so Flutter's artifacts download on first use."
+        } else {
+          Write-Output "::warning::This Shorebird CLI can't install Flutter $env:FLUTTER_VERSION before a build (that needs 1.6.148 or later), so it isn't on PATH. shorebird release --flutter-version $env:FLUTTER_VERSION still downloads it."
+          exit 0
+        }
+
+        if ($subcommands -match '(?m)^  path ') {
+          $flutterDir = shorebird flutter path @flutterArgs | Select-Object -Last 1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $flutterDir = $flutterDir.Trim()
+        } else {
+          # The CLI's documented layout, for CLIs without `shorebird flutter
+          # path`. Drop this once every supported CLI has that command. It
+          # resolves the version as the CLI does: a release branch in the
+          # default Flutter checkout, or a commit.
+          $cacheDir = Join-Path $env:INSTALL_PATH "bin\cache\flutter"
+          $revision = (Get-Content (Join-Path $env:INSTALL_PATH "bin\internal\flutter.version") -Raw).Trim()
+          if ($env:FLUTTER_VERSION -ne "latest") {
+            $ref = "refs/remotes/origin/flutter_release/$env:FLUTTER_VERSION"
+            if ($env:FLUTTER_VERSION -match '^[0-9a-fA-F]{4,40}$') { $ref = $env:FLUTTER_VERSION }
+            $revision = git -C (Join-Path $cacheDir $revision) rev-parse $ref
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            $revision = $revision.Trim()
+          }
+          $flutterDir = Join-Path $cacheDir $revision
+        }
+        if (-not (Test-Path (Join-Path $flutterDir "bin\flutter.bat"))) {
+          Write-Output "::error::Flutter is not at $flutterDir."
+          exit 1
+        }
+
+        $pubCache = if ($env:PUB_CACHE) { $env:PUB_CACHE } else { Join-Path $env:LOCALAPPDATA "Pub\Cache" }
+        Add-Content $env:GITHUB_PATH (Join-Path $flutterDir "bin")
+        Add-Content $env:GITHUB_PATH (Join-Path $pubCache "bin")
+        Write-Output "added $flutterDir\bin and the pub cache bin to GITHUB_PATH"
       shell: pwsh

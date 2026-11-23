@@ -4,13 +4,13 @@ Users reference this action as `@v1`, a tag we move to each new v1.x.y. Moving i
 
 ## Maintenance
 
-This action is in maintenance mode. It's a thin wrapper around the [Shorebird CLI](https://github.com/shorebirdtech/shorebird), which any workflow can also run directly, so it isn't getting new features or a v2. It is kept working: CI stays green and [zizmor](https://github.com/zizmorcore/zizmor)-clean, real bugs get fixed, and fixes get released rather than left on `main`.
+This action is in maintenance mode. It's a thin wrapper around the [Shorebird CLI](https://github.com/shorebirdtech/shorebird), which any workflow can also run directly, so it gets no v2 and new inputs only where Shorebird's own CI needs one (such as `flutter-version`, for installing Shorebird's Flutter). It is kept working: CI stays green and [zizmor](https://github.com/zizmorcore/zizmor)-clean, real bugs get fixed, and fixes get released rather than left on `main`.
 
-A fix must not change behavior that existing `@v1` workflows rely on.
+A change must not change behavior that existing `@v1` workflows rely on.
 
 ## Steps
 
-`vX.Y.Z` below is the new version: the last release with its patch number bumped. Releases are patch bumps, since only fixes are released.
+`vX.Y.Z` below is the new version: the last release with its patch number bumped for fixes, or its minor number bumped (patch reset to 0) when it adds an input.
 
 1. Confirm the `ci` workflow is green on the `main` commit you are releasing.
 1. Push only the tag, not a release yet, so nothing marks it Latest or lists it on the Marketplace before it's verified:
