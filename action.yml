@@ -210,6 +210,7 @@ runs:
         # `shorebird flutter <missing> --help` prints flutter's usage and exits
         # 0, so look for the subcommand in that usage instead.
         $subcommands = shorebird flutter --help | Out-String
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
         # CLIs before 1.6.148 can't install a Flutter ahead of a build. Their
         # own Flutter is installed already, so it can still go on PATH (its
         # artifacts download on first use); another version can't.
