@@ -60,33 +60,7 @@ runs:
       env:
         FLUTTER_VERSION: ${{ inputs.flutter-version }}
         SHOREBIRD_VERSION: ${{ inputs.shorebird-version }}
-      run: |
-        if [ -n "$SHOREBIRD_VERSION" ]; then
-          ref="v${SHOREBIRD_VERSION#v}"
-        else
-          ref=$(git ls-remote https://github.com/shorebirdtech/shorebird.git refs/heads/stable | cut -f1)
-          if [ -z "$ref" ]; then
-            echo "Could not resolve the Shorebird stable branch." >&2
-            exit 1
-          fi
-        fi
-        echo "cli=$ref" >> "$GITHUB_OUTPUT"
-        if [ -z "$FLUTTER_VERSION" ] || [ "$FLUTTER_VERSION" = latest ]; then
-          # The Flutter the CLI builds with by default, as pinned in the CLI
-          # this action installs.
-          revision=$(curl --proto '=https' --tlsv1.2 -sSf "https://raw.githubusercontent.com/shorebirdtech/shorebird/${ref}/bin/internal/flutter.version" | tr -d '[:space:]') || revision=""
-        elif printf %s "$FLUTTER_VERSION" | grep -Eq '^[0-9a-fA-F]{4,40}$'; then
-          # A commit hash, as `shorebird release --flutter-version` takes it.
-          revision=$(printf %s "$FLUTTER_VERSION" | tr 'A-F' 'a-f')
-        else
-          # What `shorebird release --flutter-version` resolves a version to.
-          revision=$(git ls-remote https://github.com/shorebirdtech/flutter.git "refs/heads/flutter_release/${FLUTTER_VERSION}" | cut -f1)
-        fi
-        if [ -z "$revision" ]; then
-          echo "Could not resolve the Flutter revision for '${FLUTTER_VERSION:-the Shorebird CLI}'. Run: shorebird flutter versions list" >&2
-          exit 1
-        fi
-        echo "revision=$revision" >> "$GITHUB_OUTPUT"
+      run: bash "$GITHUB_ACTION_PATH/scripts/resolve_cache_key.sh"
       shell: bash
 
     - name: 💾 Configure Shorebird Cache

@@ -54,6 +54,14 @@ or sooner past the repository's cache limit). After a new CLI release, the
 first run restores the older cache for that Flutter revision, upgrades the CLI
 and saves it again. With `shorebird-version` pinned, the CLI isn't upgraded.
 
+A version names the current commit of its Shorebird Flutter release branch,
+which can take fixes after it's cut. The cache key is that commit, so a moved
+branch is a cache miss that installs the new one, as `shorebird release
+--flutter-version` would build with. A patch builds with the commit its release
+was built with: to precache that for a release made before its branch moved,
+pass the Flutter commit hash that release was built with as
+`flutter-version`.
+
 If you build with one Flutter version, set it so the cache holds it:
 
 ```yaml
