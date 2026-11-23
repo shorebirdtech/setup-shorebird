@@ -21,7 +21,8 @@ Installs and sets up [Shorebird](https://github.com/shorebirdtech/shorebird) for
 - `flutter-version`: The Flutter version your build passes to
   `shorebird release --flutter-version` (e.g. `3.38.5`). The action installs
   and precaches it, and with `cache: true` keys the cache on its revision.
-  Defaults to the Flutter the Shorebird CLI builds with.
+  Defaults to the Flutter the Shorebird CLI builds with. Needs a Shorebird CLI
+  with `shorebird flutter precache`, including when `shorebird-version` is pinned.
 - `shorebird-version`: **Not recommended.** Pins the Shorebird CLI release to
   install (the version `shorebird --version` prints, e.g. `1.6.125`; this is
   not a Flutter version). Defaults to the latest stable release.
@@ -44,11 +45,14 @@ steps:
 
 ### Caching
 
-With `cache: true`, the cache is keyed on the Flutter revision the build uses:
-the one `flutter-version` names, or the CLI's own when it's unset. A build with
-another Flutter version is a cache miss and installs it; a later build with a
-version cached before (a patch to an older release, say) restores that cache.
-A cache hit upgrades the Shorebird CLI to the latest stable release.
+With `cache: true`, the cache is keyed on the Flutter revision the build uses
+(the one `flutter-version` names, or the CLI's own when it's unset) and the
+Shorebird CLI release. A build with another Flutter version is a cache miss and
+installs it; a later build with a version cached before (a patch to an older
+release, say) restores that cache, until GitHub evicts it (after 7 days unused,
+or sooner past the repository's cache limit). After a new CLI release, the
+first run restores the older cache for that Flutter revision, upgrades the CLI
+and saves it again. With `shorebird-version` pinned, the CLI isn't upgraded.
 
 If you build with one Flutter version, set it so the cache holds it:
 

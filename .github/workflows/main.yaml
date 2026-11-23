@@ -89,31 +89,35 @@ jobs:
           }
 
   e2e-flutter-version:
-    name: e2e flutter-version (${{ matrix.os }})
+    name: e2e flutter-version (${{ matrix.os }}${{ !matrix.cache && ', no cache' || '' }})
     strategy:
       fail-fast: false
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
+        cache: [true, false]
 
     runs-on: ${{ matrix.os }}
     env:
       # A Flutter version Shorebird supports other than the CLI's own.
       FLUTTER_VERSION: 3.38.5
+      # What flutter_release/3.38.5 in shorebirdtech/flutter points at.
+      FLUTTER_REVISION: fd66ad02c6481f4780e8d0984d4bdbe82485da1c
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - uses: $/
         with:
+          cache: ${{ matrix.cache }}
           flutter-version: ${{ env.FLUTTER_VERSION }}
       - name: 🚦 Assert Flutter Precached
         shell: pwsh
         run: |
           $root = Split-Path (Split-Path (Get-Command shorebird).Source)
-          $stamps = Get-ChildItem (Join-Path $root "bin/cache/flutter") -Filter .shorebird_precache -Recurse -Depth 1 -Force
-          if ($stamps.Count -ge 1) {
+          $stamp = Join-Path $root "bin/cache/flutter/$env:FLUTTER_REVISION/.shorebird_precache"
+          if (Test-Path $stamp) {
             Write-Output "✅ Flutter $env:FLUTTER_VERSION is precached."
           } else {
-            Write-Output "❌ No precached Flutter in $root."
+            Write-Output "❌ No precache stamp at $stamp."
             exit 1
           }

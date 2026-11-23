@@ -51,8 +51,9 @@ runs:
     # The cache is keyed on the Flutter revision the build uses, so a build
     # with another Flutter version misses rather than restoring a cache
     # without it, and each revision's cache restores whenever a build (a patch
-    # to an older release, say) uses it again. The CLI isn't in the key unless
-    # pinned: a cache hit runs `shorebird upgrade` below.
+    # to an older release, say) uses it again. The CLI release is in the key
+    # too, so a new one is saved once: its first run restores that revision's
+    # older cache (restore-keys), upgrades the CLI and saves under the new key.
     - name: 🔎 Resolve Flutter Revision
       if: ${{ inputs.cache == 'true' }}
       id: flutter-revision
@@ -60,17 +61,23 @@ runs:
         FLUTTER_VERSION: ${{ inputs.flutter-version }}
         SHOREBIRD_VERSION: ${{ inputs.shorebird-version }}
       run: |
+        if [ -n "$SHOREBIRD_VERSION" ]; then
+          ref="v${SHOREBIRD_VERSION#v}"
+        else
+          ref=$(git ls-remote https://github.com/shorebirdtech/shorebird.git refs/heads/stable | cut -f1)
+          if [ -z "$ref" ]; then
+            echo "Could not resolve the Shorebird stable branch." >&2
+            exit 1
+          fi
+        fi
+        echo "cli=$ref" >> "$GITHUB_OUTPUT"
         if [ -z "$FLUTTER_VERSION" ] || [ "$FLUTTER_VERSION" = latest ]; then
           # The Flutter the CLI builds with by default, as pinned in the CLI
           # this action installs.
-          if [ -n "$SHOREBIRD_VERSION" ]; then
-            ref="v${SHOREBIRD_VERSION#v}"
-          else
-            ref=$(git ls-remote https://github.com/shorebirdtech/shorebird.git refs/heads/stable | cut -f1)
-          fi
           revision=$(curl --proto '=https' --tlsv1.2 -sSf "https://raw.githubusercontent.com/shorebirdtech/shorebird/${ref}/bin/internal/flutter.version" | tr -d '[:space:]') || revision=""
-        elif printf %s "$FLUTTER_VERSION" | grep -Eq '^[0-9a-f]{7,40}$'; then
-          revision="$FLUTTER_VERSION"
+        elif printf %s "$FLUTTER_VERSION" | grep -Eq '^[0-9a-fA-F]{4,40}$'; then
+          # A commit hash, as `shorebird release --flutter-version` takes it.
+          revision=$(printf %s "$FLUTTER_VERSION" | tr 'A-F' 'a-f')
         else
           # What `shorebird release --flutter-version` resolves a version to.
           revision=$(git ls-remote https://github.com/shorebirdtech/flutter.git "refs/heads/flutter_release/${FLUTTER_VERSION}" | cut -f1)
@@ -88,16 +95,30 @@ runs:
       uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ${{ steps.install-path.outputs.path || steps.install-path-windows.outputs.path }}
-        key: shorebird-${{ runner.os }}-${{ runner.arch }}-flutter-${{ steps.flutter-revision.outputs.revision }}${{ inputs.shorebird-version && format('-cli-{0}', inputs.shorebird-version) || '' }}
+        key: shorebird-${{ runner.os }}-${{ runner.arch }}-flutter-${{ steps.flutter-revision.outputs.revision }}-cli-${{ steps.flutter-revision.outputs.cli }}
+        # A pinned CLI restores only its own cache: an upgrade would move it.
+        restore-keys: ${{ inputs.shorebird-version == '' && format('shorebird-{0}-{1}-flutter-{2}-cli-', runner.os, runner.arch, steps.flutter-revision.outputs.revision) || '' }}
+
+    # actions/cache reports only exact hits, and a restore-keys match (an
+    # older CLI release) must upgrade rather than reinstall over the cache.
+    - name: 🔎 Check Restored Cache
+      if: ${{ inputs.cache == 'true' }}
+      id: restored
+      env:
+        INSTALL_PATH: ${{ steps.install-path.outputs.path || steps.install-path-windows.outputs.path }}
+      run: |
+        $restored = Test-Path (Join-Path $env:INSTALL_PATH "bin/shorebird")
+        Write-Output "restored=$($restored.ToString().ToLower())" >> $env:GITHUB_OUTPUT
+      shell: pwsh
 
     - name: 🐦 Install Shorebird (MacOS / Linux)
-      if: ${{ steps.cache-shorebird.outputs.cache-hit != 'true' && inputs.shorebird-version == '' && runner.os != 'Windows' }}
+      if: ${{ steps.restored.outputs.restored != 'true' && inputs.shorebird-version == '' && runner.os != 'Windows' }}
       run: |
         curl --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/shorebirdtech/install/main/install.sh -sSf | bash -s -- --force
       shell: bash
 
     - name: 🐦 Install Shorebird (Windows)
-      if: ${{ steps.cache-shorebird.outputs.cache-hit != 'true' && inputs.shorebird-version == '' && runner.os == 'Windows' }}
+      if: ${{ steps.restored.outputs.restored != 'true' && inputs.shorebird-version == '' && runner.os == 'Windows' }}
       run: |
         Set-ExecutionPolicy RemoteSigned -scope CurrentUser # Needed to execute remote scripts
         iwr -UseBasicParsing 'https://raw.githubusercontent.com/shorebirdtech/install/main/install.ps1'|iex
@@ -151,12 +172,12 @@ runs:
       shell: pwsh
 
     - name: 🍄 Ensure Shorebird is Up-to-Date (MacOS / Linux)
-      if: ${{ steps.cache-shorebird.outputs.cache-hit == 'true' && inputs.shorebird-version == '' && runner.os != 'Windows' }}
+      if: ${{ steps.restored.outputs.restored == 'true' && inputs.shorebird-version == '' && runner.os != 'Windows' }}
       run: shorebird upgrade
       shell: bash
 
     - name: 🍄 Ensure Shorebird is Up-to-Date (Windows)
-      if: ${{ steps.cache-shorebird.outputs.cache-hit == 'true' && inputs.shorebird-version == '' && runner.os == 'Windows' }}
+      if: ${{ steps.restored.outputs.restored == 'true' && inputs.shorebird-version == '' && runner.os == 'Windows' }}
       run: shorebird upgrade
       shell: pwsh
 
